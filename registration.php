@@ -12,7 +12,7 @@ if(
     isset($_POST['lastname']) &&
     isset($_POST['g-recaptcha-response'])
 ){
-    // Blocs des verifs
+    // blocs des verifs
     if(!filter_var($_POST['email'], FILTER_VALIDATE_EMAIL)){
         $errors[] = 'Email invalide';
     }
@@ -50,6 +50,7 @@ if(
         //insertion d'un nouveau compte en bdd
         $response = $bdd->prepare("INSERT INTO users(email, password, firstname, lastname, admin, register_date, activated, register_token) VALUES (?,?,?,?,?,?,?,?) ");
 
+        //execution de la requête
         $response->execute([
             $_POST['email'],
             password_hash($_POST['password'], PASSWORD_BCRYPT),
@@ -64,14 +65,33 @@ if(
         //vérification que l'insertion a correctement fonctionné
         if($response->rowCount() > 0){
             //message de succès
-            $successMessage = 'Votre compte a été bien crée !';
+            $successMessage = 'Votre compte a été bien créé !';
         } else{
             //message d'erreurs
             $errors[] = 'Veuillez réessayer, problème avec la BDD';
         }
 
+        //vérification si l'email existe, sinon on affiche un message d'erreur
+        $response = $bdd->prepare("SELECT * FROM users WHERE email = ?");
+
+        //execution de la requête
+        $response->execute([
+            $_POST['email']
+        ]);
+
+        $user = $response->fetch(PDO::FETCH_ASSOC);
+
+        //vérification que le compte existe déja
+        if(empty($user)){
+            $errors[] = 'Le compte n\'existe pas';
+        } else{
+            if(!isset($_POST['email'], $user['email'])){
+                $successMessage = 'Vous êtes bien connecté !';
+            }
+        }
+
         //fermeture de la requête
-            $response->closeCursor();
+        $response->closeCursor();
     }
 }
 
@@ -106,7 +126,10 @@ if(
 
     //si le message de succès existe, on l'affiche
     if(isset($successMessage)){
-        echo '<p style=color:green;">' . $successMessage . '</p>';
+        echo
+            '<div class="row">
+                <p class="alert alert-success col-12">' . $successMessage . '<a href="index.php"> Cliquez ici</a> pour revenir à l\'accueil</p>
+            </div>';
     } else{
 
         ?>
